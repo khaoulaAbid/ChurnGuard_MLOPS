@@ -59,10 +59,7 @@ def main() -> None:
         client.set_registered_model_alias(MODEL_NAME, "production", version_str)
         print(f"[ok] alias 'staging' -> v{version}")
         print(f"[ok] alias 'production' -> v{version}")
-        print(
-            "[hint] charger : "
-            f'mlflow.pyfunc.load_model("models:/{MODEL_NAME}@production")'
-        )
+        print(f'[hint] charger : mlflow.pyfunc.load_model("models:/{MODEL_NAME}@production")')
     except Exception as exc:
         print(f"[warn] aliases indisponibles ({exc}), fallback stages MLflow 2.x…")
         with warnings.catch_warnings():
