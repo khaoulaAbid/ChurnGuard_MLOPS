@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -11,6 +12,11 @@ from fastapi import FastAPI, HTTPException
 
 from api.model_loader import model_loader
 from api.schemas import BatchPredictRequest, ChurnFeatures
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+)
 
 
 @asynccontextmanager
@@ -26,12 +32,20 @@ app = FastAPI(title="ChurnGuard API", version="1.0.0", lifespan=lifespan)
 def _ensure_model_loaded() -> None:
     """Leve une 503 si le modele n'a pas pu etre charge."""
     if not model_loader.is_loaded:
+        # En Docker, le tout premier chargement peut echouer
+        # (registry pret mais artefacts pas encore resolubles).
+        # On retente un chargement a la demande avant de renvoyer 503.
+        model_loader.load()
+    if not model_loader.is_loaded:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     """Renvoie le statut du service et la version du modele charge."""
+    # Le modele peut etre promu apres le demarrage de l'API.
+    # On rafraichit donc la version depuis le registry a chaque healthcheck.
+    model_loader.refresh_version()
     return {
         "status": "ok",
         "model": "churnguard",

@@ -5,13 +5,19 @@ services:
     working_dir: /mlflow
     volumes:
       - mlruns_data:/mlflow
+    # MLflow 3.x refuse les Host headers inconnus (anti DNS rebinding).
+    # Le service api appelle http://mlflow:5000 -> Host = mlflow:5000 -> 403 sans ca.
+    environment:
+      - MLFLOW_SERVER_ALLOWED_HOSTS=*
     command: >
       mlflow server
       --host 0.0.0.0
       --port 5000
       --backend-store-uri sqlite:////mlflow/mlflow.db
-      --default-artifact-root /mlflow/artifacts
       --serve-artifacts
+      --artifacts-destination /mlflow/artifacts
+      --default-artifact-root mlflow-artifacts:/
+      --allowed-hosts "*"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')\""]
       interval: 30s
@@ -33,6 +39,9 @@ services:
       - MODEL_NAME=churnguard
       - MODEL_URI=models:/churnguard@production
       - MODEL_ALIAS=production
+    volumes:
+      - mlruns_data:/mlflow
+      - ./data:/app/data:ro
     depends_on:
       mlflow:
         condition: service_healthy

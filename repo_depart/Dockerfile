@@ -19,6 +19,7 @@ ENV PYTHONUNBUFFERED=1 \
 COPY --from=builder /opt/venv /opt/venv
 COPY churnguard /app/churnguard
 COPY api /app/api
+COPY data /app/data
 
 RUN addgroup --system appgroup \
     && adduser --system --ingroup appgroup appuser \
