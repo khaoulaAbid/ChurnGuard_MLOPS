@@ -16,6 +16,7 @@ cat_cols: list[str] = [
     "MultipleLines",
     "InternetService",
     "OnlineSecurity",
+    "OnlineBackup",
     "DeviceProtection",
     "TechSupport",
     "StreamingTV",

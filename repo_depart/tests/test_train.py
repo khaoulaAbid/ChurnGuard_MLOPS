@@ -41,6 +41,7 @@ def sample_train_df() -> pd.DataFrame:
                 "DSL",
             ],
             "OnlineSecurity": ["No", "No", "Yes", "No", "Yes", "No"],
+            "OnlineBackup": ["Yes", "No", "Yes", "No", "Yes", "No"],
             "DeviceProtection": ["No", "No", "Yes", "No", "Yes", "No"],
             "TechSupport": ["No", "No", "Yes", "No", "Yes", "No"],
             "StreamingTV": ["No", "Yes", "No", "Yes", "No", "Yes"],
