@@ -3,8 +3,16 @@
 > **Mission** : industrialiser ce projet en 2 jours selon le cahier des charges fourni
 > (`Sujet_ChurnGuard_MLOps.docx`). Vous ne touchez pas à la data science.
 
-[![CI](https://github.com/<user>/churnguard/actions/workflows/ci.yml/badge.svg)](https://github.com/<user>/churnguard/actions/workflows/ci.yml)
-[![GHCR](https://img.shields.io/badge/ghcr-churnguard-blue)](https://ghcr.io/<user>/churnguard)
+Si vous avez cloné le dépôt parent, placez-vous dans le dossier applicatif :
+
+```bash
+cd repo_depart
+```
+
+[![CI](https://github.com/khaoulaAbid/ChurnGuard_MLOPS/actions/workflows/ci.yml/badge.svg)](https://github.com/khaoulaAbid/ChurnGuard_MLOPS/actions/workflows/ci.yml)
+[![GHCR](https://img.shields.io/badge/ghcr-churnguard-blue)](https://github.com/khaoulaAbid?tab=packages)
+
+> **CI GitHub** : les workflows doivent être à la racine du dépôt (`/.github/workflows/`). Si votre clone a `repo_depart/` comme sous-dossier et que la racine Git est au-dessus, déplacez `.github` à la racine du remote ou définissez la racine du repo sur le contenu de `repo_depart`, sinon le badge CI peut rester gris.
 
 ## Contexte
 
@@ -19,20 +27,21 @@ Votre rôle : transformer ce repo en projet MLOps de production.
 **Telco Customer Churn** (IBM Sample Data, ~960 Ko, 7 043 lignes, 21 colonnes,
 licence libre à des fins éducatives).
 
-Le fichier n'est pas commité dans le repo. Pour le télécharger :
+Le fichier n'est en général pas versionné (voir `.gitignore`). Pour le télécharger :
 
 ```bash
-python scripts/download_data.py
+uv run python scripts/download_data.py
 ```
 
-Le script télécharge le CSV depuis un mirror stable et vérifie son intégrité par
+Le script télécharge le CSV depuis un miroir stable et vérifie son intégrité par
 SHA-256.
 
 Sources :
+
 - [Kaggle — Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn)
 - [IBM Sample Data Sets](https://www.ibm.com/community/blogs/datasets/)
 
-## Structure livree
+## Structure livrée
 
 ```
 .
@@ -42,8 +51,12 @@ Sources :
 │   ├── evaluate.py
 │   └── train.py
 ├── api/
-│   └── main.py
+│   ├── main.py
+│   ├── model_loader.py
+│   └── schemas.py
 ├── tests/
+├── docs/
+│   └── mlflow_runs.png
 ├── Dockerfile
 ├── docker-compose.yml
 ├── pyproject.toml
@@ -58,6 +71,7 @@ Sources :
             +---------------------+
             |   FastAPI (api)     |
             | /health /predict    |
+            |     /predict/batch  |
             +----------+----------+
                        |
                        | MLFLOW_TRACKING_URI
@@ -80,31 +94,45 @@ Sources :
 uv sync --all-groups
 
 # 2. télécharger les données
-python scripts/download_data.py
+uv run python scripts/download_data.py
 
-# 3. tests + couverture
-uv run pytest --cov=churnguard --cov-fail-under=70
+# 3. tests + couverture (seuil 70 % sur le package churnguard)
+uv run pytest -m "not integration" --cov=churnguard --cov-fail-under=70
 ```
 
-## Entrainement et tracking MLflow
+## Entraînement et tracking MLflow
 
-Lancer le serveur :
+Les trois modèles `LogisticRegression`, `RandomForestClassifier` et
+`GradientBoostingClassifier` sont entraînés et loggés automatiquement dans
+MLflow (paramètres, métriques, signature, exemple d'entrée, artefact modèle).
+
+![3 runs MLflow comparés](docs/mlflow_runs.png)
+
+Pour reproduire : dans un premier terminal, lancer le serveur MLflow :
 
 ```bash
-mlflow server --host 127.0.0.1 --port 5000 --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns
+mlflow server --host 127.0.0.1 --port 5000 \
+  --backend-store-uri sqlite:///mlflow.db \
+  --default-artifact-root ./mlruns
 ```
 
-Entrainer et logger les 3 modeles :
+Dans un second terminal (Linux / macOS / Git Bash) :
 
 ```bash
-python -m churnguard.train --model all
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+uv run python -m churnguard.train --model all
 ```
 
-Entrainer et enregistrer un modele dans le registry :
+Sous **PowerShell** (Windows) :
 
-```bash
-python -m churnguard.train --model rf --register
+```powershell
+$env:MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
+uv run python -m churnguard.train --model all
 ```
+
+Puis ouvrir l’interface : [http://127.0.0.1:5000](http://127.0.0.1:5000).
+
+---
 
 ## API FastAPI
 
@@ -114,9 +142,9 @@ Lancer localement :
 uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
-Le service charge le modele promu via `models:/churnguard/Production`.
+Le service charge le modèle promu via `models:/churnguard/Production`.
 
-Exemple `curl` single predict :
+Exemple `curl` prédiction unitaire :
 
 ```bash
 curl -X POST "http://localhost:8000/predict" \
@@ -158,21 +186,22 @@ curl -X POST "http://localhost:8000/predict/batch" \
 docker compose up --build
 ```
 
-Services exposes :
+Services exposés :
 
-- MLflow UI: http://127.0.0.1:5000
-- API: http://127.0.0.1:8000/docs
-- Health endpoint: http://127.0.0.1:8000/health
+- MLflow UI : http://127.0.0.1:5000
+- API (Swagger) : http://127.0.0.1:8000/docs
+- Santé : http://127.0.0.1:8000/health
 
 ## Image Docker
 
-Image publiee via release workflow :
+Image publiée via le workflow **Release** (push d’un tag `v*.*.*`) :
 
-- `ghcr.io/<user>/churnguard:<tag>`
-- `ghcr.io/<user>/churnguard:latest`
+- `ghcr.io/khaoulaAbid/churnguard:<tag>`
+- `ghcr.io/khaoulaAbid/churnguard:latest`
 
+(Lien packages GitHub : [Packages du compte](https://github.com/khaoulaAbid?tab=packages).)
 
 ## Licence
 
-Code : MIT.
+Code : MIT.  
 Données : IBM Sample Data, voir conditions sur le site IBM.
