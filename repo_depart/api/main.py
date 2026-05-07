@@ -65,7 +65,7 @@ def predict(payload: ChurnFeatures) -> dict[str, Any]:
 
 @app.post("/predict/batch")
 def predict_batch(payload: BatchPredictRequest) -> dict[str, list[dict[str, Any]]]:
-    """Predit le churn pour un lot de clients (1 a 100)."""
+    """reçoit une liste de clients (max 100), retourne la liste des prédictions"""
     _ensure_model_loaded()
     if len(payload.records) == 0:
         raise HTTPException(status_code=400, detail="Batch cannot be empty")

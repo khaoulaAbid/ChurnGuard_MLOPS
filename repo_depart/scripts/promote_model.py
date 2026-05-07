@@ -2,7 +2,7 @@
 
 Usage :
     python scripts/promote_model.py
-    python scripts/promote_model.py --version 2
+    python scripts/promote_model.py --version 3
 """
 
 from __future__ import annotations
