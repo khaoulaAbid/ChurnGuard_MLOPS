@@ -43,4 +43,3 @@ class BatchPredictRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
     records: list[ChurnFeatures]
-

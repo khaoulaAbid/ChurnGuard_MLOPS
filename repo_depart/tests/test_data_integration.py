@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from churnguard.data import load_data
 
 REAL_CSV = Path(__file__).resolve().parents[1] / "data" / "telco_churn.csv"

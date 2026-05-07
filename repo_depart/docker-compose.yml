@@ -1,20 +1,25 @@
 services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.12.0
-    working_dir: /app
     container_name: churnguard-mlflow
+    working_dir: /mlflow
     volumes:
-      - ./:/app
-      - mlruns_data:/app/mlruns
+      - mlruns_data:/mlflow
+    # MLflow 3.x refuse les Host headers inconnus (anti DNS rebinding).
+    # Le service api appelle http://mlflow:5000 -> Host = mlflow:5000 -> 403 sans ca.
+    environment:
+      - MLFLOW_SERVER_ALLOWED_HOSTS=*
     command: >
       mlflow server
-        --host 0.0.0.0
-        --port 5000
-        --backend-store-uri sqlite:///mlflow/mlflow.db
-        --default-artifact-root /mlflow/artifacts
-        --serve-artifacts
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --serve-artifacts
+      --artifacts-destination /mlflow/artifacts
+      --default-artifact-root mlflow-artifacts:/
+      --allowed-hosts "*"
     healthcheck:
-      test: ["CMD", "curl", "-f","python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000')"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')\""]
       interval: 30s
       timeout: 10s
       retries: 20
@@ -24,43 +29,33 @@ services:
     networks:
       - churnguard_net
 
-  trainer:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: churnguard-trainer
-    command: python churnguard/train.py
-    volumes:
-      - ./data:/app/data:ro
-      - ./churnguard:/app/churnguard:ro
-    environment:
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
-    depends_on:
-      mlflow:
-        condition: service_healthy
-    networks:
-      - churnguard_net
-    restart: "no"
-    
-
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: churnguard-api  
+    container_name: churnguard-api
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - MODEL_NAME=churnguard
-      - MODEL_URI=models:/churnguard/Production
-      - MODEL_STAGE=Production
+      - MODEL_URI=models:/churnguard@production
+      - MODEL_ALIAS=production
+    volumes:
+      - mlruns_data:/mlflow
+      - ./data:/app/data:ro
     depends_on:
       mlflow:
         condition: service_healthy
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - churnguard_net
-    restart: unless-stopped  
+    restart: unless-stopped
 
 volumes:
   mlruns_data:
