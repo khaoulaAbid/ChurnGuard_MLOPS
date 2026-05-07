@@ -107,7 +107,11 @@ class ModelLoader:
                     artifact_uri = client.get_run(run_id).info.artifact_uri.rstrip("/")
                     fallback_uris.append(f"{artifact_uri}/model")
                 except Exception as exc_artifact:
-                    logger.warning("Cannot resolve artifact_uri for run %s: %s", run_id, exc_artifact)
+                    logger.warning(
+                        "Cannot resolve artifact_uri for run %s: %s",
+                        run_id,
+                        exc_artifact,
+                    )
 
                 for uri in fallback_uris:
                     try:
