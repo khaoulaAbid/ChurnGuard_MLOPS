@@ -1,19 +1,5 @@
 # ChurnGuard — projet MLOps
 
-> **Mission** : industrialiser ce projet en 2 jours selon le cahier des charges fourni
-> (`Sujet_ChurnGuard_MLOps.docx`). Vous ne touchez pas à la data science.
-
-[![CI](https://github.com/<user>/churnguard/actions/workflows/ci.yml/badge.svg)](https://github.com/<user>/churnguard/actions/workflows/ci.yml)
-[![GHCR](https://img.shields.io/badge/ghcr-churnguard-blue)](https://ghcr.io/<user>/churnguard)
-
-## Contexte
-
-Vous reprenez le projet d'une data scientist de TelcoFr. Elle a entraîné un
-modèle de prédiction de churn dans un notebook qui marche. Personne d'autre que
-elle ne sait le faire tourner.
-
-Votre rôle : transformer ce repo en projet MLOps de production.
-
 ## Données
 
 **Telco Customer Churn** (IBM Sample Data, ~960 Ko, 7 043 lignes, 21 colonnes,
@@ -164,15 +150,3 @@ Services exposes :
 - API: http://127.0.0.1:8000/docs
 - Health endpoint: http://127.0.0.1:8000/health
 
-## Image Docker
-
-Image publiee via release workflow :
-
-- `ghcr.io/<user>/churnguard:<tag>`
-- `ghcr.io/<user>/churnguard:latest`
-
-
-## Licence
-
-Code : MIT.
-Données : IBM Sample Data, voir conditions sur le site IBM.
